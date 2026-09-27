@@ -1,4 +1,4 @@
-﻿diff --git a/src/compaction.test.ts b/src/compaction.test.ts
+diff --git a/src/compaction.test.ts b/src/compaction.test.ts
 index 47143e9..c80138f 100644
 --- a/src/compaction.test.ts
 +++ b/src/compaction.test.ts

@@ -10,7 +10,7 @@
 
 ## 1. Incident Overview
 
-While running a complex task in `D:\learn\gemini-mcp\gemini-blogdee-subdomain` using **OpenCode**, the user encountered an immediate terminal failure during tool execution:
+While running a complex task with multi-turn tool calling using **OpenCode**, the user encountered an immediate terminal failure during tool execution:
 
 ```text
 Bad Request: data: {
@@ -85,8 +85,8 @@ When Alibaba Cloud inspected Message 16 (`type: "tool_use"`) and Message 17 (`ty
 Rather than hacking OpenCode's client library or restricting MCP tools, we implemented a gateway-level normalizer: **`normalizeOpenAIMessages()`**.
 
 ### 3.1 Architecture of the Normalizer
-Location: [`src/wire.ts`](file:///D:/learn/gemini-mcp/gemini-blogdee-subdomain/jevonian/src/wire.ts)  
-Invoked in: [`src/upstream.ts`](file:///D:/learn/gemini-mcp/gemini-blogdee-subdomain/jevonian/src/upstream.ts)
+Location: `src/wire.ts`  
+Invoked in: `src/upstream.ts`
 
 Before any payload is dispatched upstream to an OpenAI-wire provider (`upstreamKind === "openai"` or `geminiWire`), Jevonian inspects all messages:
 
@@ -300,8 +300,8 @@ export function normalizeOpenAIMessages(
 
 If you pull updates from upstream `jevonian` in the future:
 ```powershell
-cd D:\learn\gemini-mcp\gemini-blogdee-subdomain\jevonian
-git apply ..\jevonian-multi-agent-deployment\patch-jevonian.diff
+cd ../jevonian
+git apply ../jevonian-multi-agent-deployment/patch-jevonian.diff
 pnpm build
 ```
 This restores the normalizer and effort-routing enhancements immediately.
