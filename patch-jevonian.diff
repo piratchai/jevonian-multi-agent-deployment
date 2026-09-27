@@ -241,7 +241,7 @@ index 5428caa..2674daa 100644
      // tool calls. Restore it from the previous upstream response before egress.
      const passbackReasoning =
 diff --git a/src/wire-correction.test.ts b/src/wire-correction.test.ts
-index 1403772..db2e686 100644
+index 1403772..04aa920 100644
 --- a/src/wire-correction.test.ts
 +++ b/src/wire-correction.test.ts
 @@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test"
@@ -252,7 +252,7 @@ index 1403772..db2e686 100644
  
  describe("model entry parse", () => {
    it("accepts bare strings and { id, wire } objects", () => {
-@@ -100,3 +101,222 @@ describe("OpenCode Responses passthrough", () => {
+@@ -100,3 +101,255 @@ describe("OpenCode Responses passthrough", () => {
      expect(await response.text()).toContain("response.output_text.delta");
    });
  });
@@ -473,13 +473,46 @@ index 1403772..db2e686 100644
 +      },
 +    ]);
 +  });
++
++  it("strips empty tool_calls arrays from messages to satisfy strict OpenAI validators", () => {
++    const input = [
++      {
++        role: "assistant",
++        content: "Both files are truncated; let me continue reading.",
++        tool_calls: [],
++      },
++      {
++        role: "user",
++        content: "Have you done?",
++      },
++      {
++        role: "assistant",
++        content: [
++          { type: "text", text: "Checking next file..." },
++        ],
++        tool_calls: [],
++      },
++    ];
++
++    const result = normalizeOpenAIMessages(input);
++    expect(result[0]).toEqual({
++      role: "assistant",
++      content: "Both files are truncated; let me continue reading.",
++    });
++    expect("tool_calls" in result[0]).toBe(false);
++    expect(result[2]).toEqual({
++      role: "assistant",
++      content: "Checking next file...",
++    });
++    expect("tool_calls" in result[2]).toBe(false);
++  });
 +});
 +
 diff --git a/src/wire.ts b/src/wire.ts
-index c5fd729..b69f3b4 100644
+index c5fd729..d6a5572 100644
 --- a/src/wire.ts
 +++ b/src/wire.ts
-@@ -254,3 +254,207 @@ export function upstreamUrlFor(provider: Provider, wire: UpstreamWire): string {
+@@ -254,3 +254,221 @@ export function upstreamUrlFor(provider: Provider, wire: UpstreamWire): string {
    }
    return `${base}${endpointFor(provider.type, wire)}`;
  }
@@ -632,6 +665,8 @@ index c5fd729..b69f3b4 100644
 +    }
 +
 +    if (role === "assistant") {
++      const existing = Array.isArray(msg.tool_calls) ? (msg.tool_calls as unknown[]) : [];
++      const combined = [...existing, ...toolCalls];
 +      const assistantMsg: Record<string, unknown> = {
 +        ...msg,
 +        role: "assistant",
@@ -640,13 +675,14 @@ index c5fd729..b69f3b4 100644
 +            ? textParts.join("\n")
 +            : imageParts.length > 0
 +              ? imageParts
-+              : toolCalls.length > 0 || msg.tool_calls
++              : combined.length > 0
 +                ? null
 +                : "",
 +      };
-+      if (toolCalls.length > 0) {
-+        const existing = Array.isArray(msg.tool_calls) ? (msg.tool_calls as unknown[]) : [];
-+        assistantMsg.tool_calls = [...existing, ...toolCalls];
++      if (combined.length > 0) {
++        assistantMsg.tool_calls = combined;
++      } else {
++        delete assistantMsg.tool_calls;
 +      }
 +      out.push(assistantMsg);
 +    } else if (role === "user") {
@@ -681,6 +717,17 @@ index c5fd729..b69f3b4 100644
 +              ? imageParts
 +              : "",
 +      });
++    }
++  }
++
++  // Strict OpenAI backends (such as Alibaba Cloud Model Studio / Qwen / DeepSeek) reject
++  // messages with empty `tool_calls: []` ("Empty tool_calls is not supported in message.").
++  // Strip any empty tool_calls or null tool_calls across all messages before egress.
++  for (const item of out) {
++    if ("tool_calls" in item) {
++      if (!Array.isArray(item.tool_calls) || item.tool_calls.length === 0) {
++        delete item.tool_calls;
++      }
 +    }
 +  }
 +
