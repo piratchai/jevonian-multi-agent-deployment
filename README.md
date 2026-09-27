@@ -112,7 +112,7 @@ OpenCode is designed for general-purpose LLM providers using standard API keys.
 - **Dashboard URL**: `http://127.0.0.1:8787/logs`
 
 ### 3.2 Jevonian Configuration (`~/.config/jevonian/config.json`)
-Copy the template [config-opencode.json](file:///D:/learn/gemini-mcp/gemini-blogdee-subdomain/jevonian-multi-agent-deployment/config-opencode.json) to `C:\Users\<user>\.config\jevonian\config.json`:
+Copy the template [config-opencode.json](./config-opencode.json) to `C:\Users\<user>\.config\jevonian\config.json`:
 
 ```json
 {
@@ -225,7 +225,7 @@ node run-opencode.js
 # Or double-click: run-opencode.bat
 
 # Option B: Directly via Jevonian CLI
-cd D:\learn\gemini-mcp\gemini-blogdee-subdomain\jevonian
+cd ../jevonian
 node dist/cli.mjs serve
 ```
 
@@ -240,7 +240,7 @@ Claude Code connects to official Anthropic models using your Claude Max or Pro s
 - **Dashboard URL**: `http://127.0.0.1:8790/logs`
 
 ### 4.2 Jevonian Configuration (`~/.config/jevonian-claude/config.json`)
-Copy the template [config-claudecode.json](file:///D:/learn/gemini-mcp/gemini-blogdee-subdomain/jevonian-multi-agent-deployment/config-claudecode.json) to `C:\Users\<user>\.config\jevonian-claude\config.json`:
+Copy the template [config-claudecode.json](./config-claudecode.json) to `C:\Users\<user>\.config\jevonian-claude\config.json`:
 
 ```json
 {
@@ -353,7 +353,7 @@ Configure Claude Code to send all traffic to port 8790:
 ```
 
 ### 4.5 Starting the Claude Code Gateway
-Run the launcher script [run-claude.js](file:///D:/learn/gemini-mcp/gemini-blogdee-subdomain/jevonian-multi-agent-deployment/run-claude.js) or double-click the batch file:
+Run the launcher script [run-claude.js](./run-claude.js) or double-click the batch file:
 
 ```powershell
 node run-claude.js
@@ -365,7 +365,7 @@ node run-claude.js
 ## 5. Step 4: Verification & Live Health Checks
 
 ### 5.1 Automated All-in-One Verification Script
-Run the automated verification script [test-verify.js](file:///D:/learn/gemini-mcp/gemini-blogdee-subdomain/jevonian-multi-agent-deployment/test-verify.js) to probe both gateways and test the OpenCode tool wire normalizer:
+Run the automated verification script [test-verify.js](./test-verify.js) to probe both gateways and test the OpenCode tool wire normalizer:
 
 ```powershell
 node test-verify.js
@@ -427,7 +427,7 @@ Inspect the live routing decisions, token usage, and latency in your browser:
   3. Text array blocks into merged strings so strict schemas are 100% compliant.
 
 > [!NOTE]
-> For the complete technical post-mortem, anatomy of the error, and reproduction evidence, see [OPENCODE_ISSUE_POSTMORTEM.md](file:///D:/learn/gemini-mcp/gemini-blogdee-subdomain/jevonian-multi-agent-deployment/OPENCODE_ISSUE_POSTMORTEM.md).
+> For the complete technical post-mortem, anatomy of the error, and reproduction evidence, see [OPENCODE_ISSUE_POSTMORTEM.md](./OPENCODE_ISSUE_POSTMORTEM.md).
 
 ---
 
@@ -511,7 +511,7 @@ The Ref MCP server (`ref-tools-mcp`) provides fast, token-efficient technical do
 OpenCode V2 (`https://opencode.ai/v2/docs`) introduces a stateful event-sourced runtime with checkpoint-based compaction and a streamlined schema.
 
 ### 9.1 Native V2 Configuration Template (`opencode.v2.json`)
-A complete native V2 configuration is included in this repository as [`opencode.v2.json`](file:///D:/learn/gemini-mcp/gemini-blogdee-subdomain/jevonian-multi-agent-deployment/opencode.v2.json):
+A complete native V2 configuration is included in this repository as [`opencode.v2.json`](./opencode.v2.json):
 
 ```json
 {

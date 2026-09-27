@@ -25,6 +25,9 @@
       "syncModels": false
     }
   ],
+  "modelAliases": {
+    "claude-sonnet-5-5": ["claude-subscription/claude-sonnet-5"]
+  },
   "routing": {
     "mode": "auto",
     "routings": [
@@ -38,14 +41,14 @@
       {
         "id": "execute",
         "label": "Execute",
-        "description": "Implementation, bug fixing, tool loops (Claude Sonnet 5, medium effort)",
+        "description": "Implementation, bug fixing, tool loops (Claude Sonnet 5.5 / Sonnet 5, medium effort)",
         "models": ["claude-sonnet-5"],
         "effort": "medium"
       },
       {
         "id": "utility",
         "label": "Background",
-        "description": "Background repo scans, summaries, titles (Claude Sonnet 5, low effort)",
+        "description": "Background repo scans, summaries, titles (Claude Sonnet 5.5 / Sonnet 5, low effort)",
         "models": ["claude-sonnet-5"],
         "effort": "low"
       },
@@ -82,6 +85,8 @@
     "brains": [
       {
         "channel": "typesafe",
+        "apiKey": "YOUR_TYPESAFE_API_KEY",
+        "apiKeyEnv": "TYPESAFE_API_KEY",
         "timeoutMs": 8000,
         "minConfidence": 0.6
       }
