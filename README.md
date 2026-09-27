@@ -504,5 +504,76 @@ The Ref MCP server (`ref-tools-mcp`) provides fast, token-efficient technical do
    ```
    Both OpenCode and Kilo CLI can now call `ref_search_documentation` and `ref_read_url` dynamically to query live upstream documentation without polluting context windows.
 
+---
+
+## 9. OpenCode V2 Migration & Native Configuration
+
+OpenCode V2 (`https://opencode.ai/v2/docs`) introduces a stateful event-sourced runtime with checkpoint-based compaction and a streamlined schema.
+
+### 9.1 Native V2 Configuration Template (`opencode.v2.json`)
+A complete native V2 configuration is included in this repository as [`opencode.v2.json`](file:///D:/learn/gemini-mcp/gemini-blogdee-subdomain/jevonian-multi-agent-deployment/opencode.v2.json):
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "compaction": {
+    "auto": true,
+    "keep": {
+      "tokens": 15000
+    },
+    "buffer": 20000
+  },
+  "media": {
+    "image": {
+      "auto_resize": true,
+      "max_width": 1280,
+      "max_height": 1280,
+      "max_base64_bytes": 1048576
+    }
+  },
+  "plugins": [
+    "context-mode"
+  ],
+  "model": "jevonian/auto",
+  "permissions": [
+    { "action": "*", "resource": "*", "effect": "allow" }
+  ],
+  "providers": {
+    "jevonian": {
+      "package": "aisdk:@ai-sdk/openai-compatible",
+      "settings": {
+        "baseURL": "http://127.0.0.1:8787/v1",
+        "apiKey": "local-no-key"
+      },
+      "models": {
+        "auto": {
+          "name": "Jevonian Auto (Dynamic Tier Router)",
+          "limit": { "context": 160000, "output": 65536 },
+          "capabilities": { "tools": true, "input": ["text", "image"], "output": ["text"] }
+        }
+      }
+    }
+  },
+  "mcp": {
+    "servers": {
+      "ref": {
+        "type": "local",
+        "command": ["npx", "-y", "ref-tools-mcp"],
+        "environment": { "REF_API_KEY": "{env:REF_API_KEY}" },
+        "disabled": false,
+        "timeout": { "catalog": 30000, "execution": 30000 }
+      }
+    }
+  }
+}
+```
+
+### 9.2 Key Differences & What Is Obsolete in V2
+1. **`compaction.prune` is Obsolete:** OpenCode V2 ignores `prune` with a warning. V2 uses checkpoint-based compaction (`keep.tokens` + `buffer`), storing prior history as plain text summaries and only retaining the recent token budget. Raw historical base64 images are natively excluded.
+2. **Provider Syntax:** Uses `providers` with `package: "aisdk:@ai-sdk/openai-compatible"` and `settings`.
+3. **Permissions:** Uses ordered array `permissions: [ { "action": "*", "resource": "*", "effect": "allow" } ]`.
+4. **MCP Servers:** Nested under `mcp.servers` with `disabled: false`.
+
+
 
 

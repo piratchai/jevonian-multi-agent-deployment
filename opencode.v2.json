@@ -1,0 +1,142 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "compaction": {
+    "auto": true,
+    "keep": {
+      "tokens": 15000
+    },
+    "buffer": 20000
+  },
+  "media": {
+    "image": {
+      "auto_resize": true,
+      "max_width": 1280,
+      "max_height": 1280,
+      "max_base64_bytes": 1048576
+    }
+  },
+  "plugins": [
+    "context-mode"
+  ],
+  "model": "jevonian/auto",
+  "permissions": [
+    {
+      "action": "*",
+      "resource": "*",
+      "effect": "allow"
+    }
+  ],
+  "providers": {
+    "jevonian": {
+      "package": "aisdk:@ai-sdk/openai-compatible",
+      "settings": {
+        "baseURL": "http://127.0.0.1:8787/v1",
+        "apiKey": "local-no-key"
+      },
+      "models": {
+        "auto": {
+          "name": "Jevonian Auto (Dynamic Tier Router)",
+          "limit": {
+            "context": 160000,
+            "output": 65536
+          },
+          "capabilities": {
+            "tools": true,
+            "input": [
+              "text",
+              "image"
+            ],
+            "output": [
+              "text"
+            ]
+          }
+        },
+        "chat": {
+          "name": "Jevonian Chat (deepseek-v4.1-flash)",
+          "limit": {
+            "context": 160000,
+            "output": 65536
+          },
+          "capabilities": {
+            "tools": true,
+            "input": [
+              "text"
+            ],
+            "output": [
+              "text"
+            ]
+          }
+        },
+        "execute": {
+          "name": "Jevonian Execute (qwen3.8-flash)",
+          "limit": {
+            "context": 160000,
+            "output": 65536
+          },
+          "capabilities": {
+            "tools": true,
+            "input": [
+              "text",
+              "image"
+            ],
+            "output": [
+              "text"
+            ]
+          }
+        },
+        "utility": {
+          "name": "Jevonian Utility (qwen3.7-plus)",
+          "limit": {
+            "context": 160000,
+            "output": 65536
+          },
+          "capabilities": {
+            "tools": true,
+            "input": [
+              "text"
+            ],
+            "output": [
+              "text"
+            ]
+          }
+        },
+        "plan": {
+          "name": "Jevonian Plan (glm-5.3)",
+          "limit": {
+            "context": 160000,
+            "output": 65536
+          },
+          "capabilities": {
+            "tools": true,
+            "input": [
+              "text"
+            ],
+            "output": [
+              "text"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "mcp": {
+    "servers": {
+      "ref": {
+        "type": "local",
+        "command": [
+          "npx",
+          "-y",
+          "ref-tools-mcp"
+        ],
+        "environment": {
+          "REF_API_KEY": "{env:REF_API_KEY}"
+        },
+        "disabled": false,
+        "timeout": {
+          "catalog": 30000,
+          "execution": 30000
+        }
+      }
+    }
+  }
+}

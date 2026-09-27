@@ -394,3 +394,38 @@ To permanently fix the issue in OpenCode:
 3. **System-Wide Ref MCP Integration:**
    Configured `REF_API_KEY` in Windows environment (`setx`) and added environment blocks to all tool manifests (`opencode.json`, `kilo.json`, `.mcp.json`, etc.) so documentation lookups are accessible to all agents.
 
+---
+
+## 8. OpenCode V1 vs. OpenCode V2 Architectural Analysis
+
+With OpenCode V2 (`https://opencode.ai/v2/docs`), the internal execution engine, session durability model, and configuration contracts have been redesigned.
+
+### 8.1 What Changed from V1 to V2
+
+| Area | OpenCode V1 | OpenCode V2 | Impact |
+|---|---|---|---|
+| **Compaction Engine** | Message replay; `preserve_recent_tokens` or `prune: true` | **Checkpoint-based compaction** with `keep.tokens` & `buffer` | **Breaking**: `prune` & `tail_turns` are ignored with warnings. Recent context is retained by token budget as plain text. |
+| **Provider Syntax** | `"provider": { "name": { "npm": "...", "options": { ... } } }` | `"providers": { "name": { "package": "aisdk:...", "settings": { ... } } }` | Native V2 uses `providers` map, `aisdk:` package prefix, and `settings`. |
+| **Permissions** | Object grouped by tool: `"permission": { "bash": { "*": "allow" } }` | Ordered rule array: `"permissions": [ { "action": "shell", "resource": "*", "effect": "allow" } ]` | Actions renamed: `bash` → `shell`, `task` → `subagent`, `write`/`patch` → `edit`. |
+| **MCP Servers** | `"mcp": { "ref": { "enabled": true } }` | `"mcp": { "servers": { "ref": { "disabled": false } } }` | Nested under `servers`; `enabled` inverted to `disabled`; split timeouts (`catalog`, `execution`). |
+| **Media / Images** | `"attachment": { "image": { ... } }` | `"media": { "image": { ... } }` | Standardized under `media`. |
+| **Plugins** | `"plugin": [ ... ]` | `"plugins": [ ... ]` | New V2 Plugin API (V1 plugins do not run in V2). |
+| **Model Capabilities** | `"tool_call": true`, `"modalities": { ... }` | `"capabilities": { "tools": true, "input": [...], "output": [...] }` | Explicit capability mapping. |
+| **Client Settings** | Layered `tui.json(c)` | Single global `~/.config/opencode/cli.json` | Terminal UI preferences isolated from server. |
+
+### 8.2 Which Previous Fixes Are Obsolete in OpenCode V2?
+
+#### 1. `compaction.prune: true` is Obsolete in V2
+- **In V1:** OpenCode blindly replayed historical raw provider messages, re-transmitting base64 screenshots across turns unless `prune: true` was explicitly set.
+- **In V2:** OpenCode completely removed the `prune` parameter. OpenCode V2 migration documentation explicitly notes:
+  > *"compaction.tail_turns and compaction.prune: V2 uses compaction.keep.tokens and checkpoint-based compaction instead. V2 has no native tail_turns or prune field; both legacy fields are ignored with a warning."*
+- **Why it's no longer needed:** In V2, automatic preflight compaction converts prior turns into a durable structured text summary checkpoint and only retains a strict token budget (`keep.tokens`) of recent turns. Historical base64 images are natively excluded from the model-visible continuation payload.
+
+#### 2. `compaction.reserved` is Replaced by `compaction.buffer`
+- In V2, the token reserve parameter is renamed to `compaction.buffer: 20000`, providing clean headroom below the model's actual context window.
+
+#### 3. Wire Normalization (`normalizeOpenAIMessages`) in Jevonian
+- In V2, OpenCode implements a `Structured Tool Registry And Canonical Output` contract where tool executions are settled before provider continuation.
+- **Router Status:** While OpenCode V2 generates cleaner internal representations, the router-level normalizer in Jevonian (`normalizeOpenAIMessages()` in `src/wire.ts`) **should remain active in the router**. Jevonian acts as a universal multi-agent gateway; keeping the normalizer guarantees that any OpenAI-compatible provider (like Alibaba Cloud Model Studio) never receives un-lowered Anthropic blocks regardless of which client or SDK version connects.
+
+
