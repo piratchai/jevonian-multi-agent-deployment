@@ -1,0 +1,13 @@
+# Credentials & Secrets
+credentials.json
+.env
+*.key
+*.pem
+
+# Dependencies
+node_modules/
+
+# Logs & temp
+*.log
+.DS_Store
+Thumbs.db

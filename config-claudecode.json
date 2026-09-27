@@ -1,0 +1,99 @@
+{
+  "listen": {
+    "host": "127.0.0.1",
+    "port": 8790
+  },
+  "defaultProvider": "claude-subscription",
+  "providers": [
+    {
+      "name": "claude-subscription",
+      "type": "anthropic",
+      "baseUrl": "https://api.anthropic.com/v1",
+      "auth": "oauth",
+      "oauthSource": "claude-code",
+      "billing": "subscription",
+      "models": [
+        { "id": "claude-haiku-4-5-20251001" },
+        { "id": "claude-sonnet-5" },
+        { "id": "claude-opus-5-5" }
+      ],
+      "injectStreamUsage": true,
+      "headers": {
+        "user-agent": "claude-cli/2.1.282 (external, cli)",
+        "anthropic-beta": "context-management-2025-06-27,compact-2026-01-12"
+      },
+      "syncModels": false
+    }
+  ],
+  "routing": {
+    "mode": "auto",
+    "routings": [
+      {
+        "id": "plan",
+        "label": "Plan",
+        "description": "High complexity reasoning & architectural blueprints (Claude Opus 5.5, xhigh effort)",
+        "models": ["claude-opus-5-5"],
+        "effort": "xhigh"
+      },
+      {
+        "id": "execute",
+        "label": "Execute",
+        "description": "Implementation, bug fixing, tool loops (Claude Sonnet 5, medium effort)",
+        "models": ["claude-sonnet-5"],
+        "effort": "medium"
+      },
+      {
+        "id": "utility",
+        "label": "Background",
+        "description": "Background repo scans, summaries, titles (Claude Sonnet 5, low effort)",
+        "models": ["claude-sonnet-5"],
+        "effort": "low"
+      },
+      {
+        "id": "chat",
+        "label": "Chit-chat",
+        "description": "Greetings, casual conversation, quick queries (Claude Haiku 4.5, low effort)",
+        "models": ["claude-haiku-4-5-20251001"],
+        "effort": "low"
+      }
+    ],
+    "tiers": {
+      "plan": ["claude-opus-5-5"],
+      "execute": ["claude-sonnet-5"],
+      "utility": ["claude-sonnet-5"],
+      "chat": ["claude-haiku-4-5-20251001"]
+    },
+    "capacities": {
+      "claude-haiku-4-5-20251001": {
+        "efforts": ["low"]
+      },
+      "claude-sonnet-5": {
+        "efforts": ["low", "medium", "high"]
+      },
+      "claude-opus-5-5": {
+        "efforts": ["high", "xhigh"]
+      }
+    },
+    "sessionTtlMinutes": 720,
+    "quotaGuard": {
+      "enabled": true,
+      "lowPercent": 10
+    },
+    "brains": [
+      {
+        "channel": "typesafe",
+        "timeoutMs": 8000,
+        "minConfidence": 0.6
+      }
+    ],
+    "brainPicksEffort": false
+  },
+  "tunnel": {
+    "enabled": false,
+    "provider": "cloudflare"
+  },
+  "modelSync": {
+    "enabled": false,
+    "intervalMinutes": 720
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "listen": {
+    "host": "127.0.0.1",
+    "port": 8787
+  },
+  "defaultProvider": "primary-provider",
+  "providers": [
+    {
+      "name": "primary-provider",
+      "type": "openai",
+      "baseUrl": "https://your-api-endpoint.example.com/v1",
+      "auth": "api-key",
+      "apiKey": "YOUR_API_KEY_HERE",
+      "models": [
+        { "id": "deepseek-v4.1-flash" },
+        { "id": "qwen3.8-flash" },
+        { "id": "qwen3.7-plus" },
+        { "id": "glm-5.3" },
+        { "id": "qwen3.8-max" }
+      ],
+      "injectStreamUsage": true,
+      "syncModels": false
+    }
+  ],
+  "routing": {
+    "mode": "auto",
+    "routings": [
+      {
+        "id": "plan",
+        "label": "Plan",
+        "description": "High difficulty: architecture design, deep reasoning, system coordination",
+        "models": ["glm-5.3", "qwen3.8-max"],
+        "effort": "high"
+      },
+      {
+        "id": "execute",
+        "label": "Execute",
+        "description": "Medium difficulty: code implementation, debugging, tool loops, refactoring",
+        "models": ["qwen3.8-flash", "qwen3.7-plus"],
+        "effort": "medium"
+      },
+      {
+        "id": "utility",
+        "label": "Background",
+        "description": "Low difficulty: repository search, summarization, file indexing",
+        "models": ["qwen3.7-plus", "qwen3.8-flash"],
+        "effort": "low"
+      },
+      {
+        "id": "chat",
+        "label": "Chit-chat",
+        "description": "Low difficulty: greetings, small talk, casual queries",
+        "models": ["deepseek-v4.1-flash", "qwen3.8-flash"],
+        "effort": "low"
+      }
+    ],
+    "tiers": {
+      "plan": ["glm-5.3", "qwen3.8-max"],
+      "execute": ["qwen3.8-flash", "qwen3.7-plus"],
+      "utility": ["qwen3.7-plus", "qwen3.8-flash"],
+      "chat": ["deepseek-v4.1-flash", "qwen3.8-flash"]
+    },
+    "capacities": {
+      "deepseek-v4.1-flash": { "efforts": ["low"] },
+      "qwen3.8-flash": { "efforts": ["low", "medium"] },
+      "qwen3.7-plus": { "efforts": ["low", "medium"] },
+      "glm-5.3": { "efforts": ["high", "xhigh"] },
+      "qwen3.8-max": { "efforts": ["high", "xhigh"] }
+    },
+    "sessionTtlMinutes": 720,
+    "quotaGuard": {
+      "enabled": true,
+      "lowPercent": 10
+    },
+    "brains": [
+      {
+        "channel": "typesafe",
+        "timeoutMs": 8000,
+        "minConfidence": 0.6
+      }
+    ],
+    "brainPicksEffort": false
+  },
+  "tunnel": {
+    "enabled": false,
+    "provider": "cloudflare"
+  },
+  "modelSync": {
+    "enabled": false,
+    "intervalMinutes": 720
+  }
+}
