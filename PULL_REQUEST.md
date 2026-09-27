@@ -96,17 +96,28 @@ Added 5 comprehensive unit tests:
 4. `translates user tool_result blocks to OpenAI role: tool messages`
 5. `preserves multimodal image_url content items`
 
+### 6. `src/compaction.ts` & `src/routing.ts` — Base64 Vision Token Estimation & Compaction State Fix
+- **The Bug:** When multimodal tools (like `android_Snapshot [use_vision=true]`) return base64 images, Jevonian's character-based estimator counted raw base64 string chunks as text tokens (~2,017,424 tokens). This falsely exceeded model context windows, triggered emergency compaction (`compactForOverflow`), which then timed out after 8s with:
+  `Context too large for every configured model, and compaction failed: This operation was aborted`
+- **The Fix:**
+  - Added `BASE64_IMAGE_DATA` regex to recognize data URIs and Anthropic base64 blocks.
+  - Normalized base64 image tokens to fixed tile token costs (`IMAGE_TOKEN_ESTIMATE = 1200`), matching standard LLM vision encoders.
+  - Sanitized compaction `historyEntries` and `stringifyContent` so routing brain payloads remain lightweight and never time out.
+  - Added unit test in `src/compaction.test.ts` verifying that base64 images are estimated at vision tile rates.
+
 ---
 
 ## 📊 Summary of Modified Files
 
 ```
+ src/compaction.test.ts     |   8 ++++++++
+ src/compaction.ts          |  26 ++++++++++++++++++++++--
  src/config.ts              |  10 +++++--
- src/routing.ts             |   8 +++--
+ src/routing.ts             |  16 ++++++++++---
  src/upstream.ts            |  16 +++++++-
  src/wire.ts                | 148 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  src/wire-correction.test.ts| 104 +++++++++++++++++++++++++++++++++++++++++++++
- 5 files changed, 280 insertions(+), 6 deletions(-)
+ 7 files changed, 314 insertions(+), 15 deletions(-)
 ```
 
 ---
