@@ -1,0 +1,87 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "compaction": {
+    "auto": true,
+    "prune": true,
+    "reserved": 10000
+  },
+  "plugin": [
+    "context-mode"
+  ],
+  "model": "jevonian/auto",
+  "small_model": "jevonian/auto",
+  "permission": {
+    "*": "allow"
+  },
+  "provider": {
+    "jevonian": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Jevonian Router",
+      "options": {
+        "baseURL": "http://127.0.0.1:8787/v1",
+        "apiKey": "local-no-key"
+      },
+      "models": {
+        "auto": {
+          "name": "Jevonian Auto (Dynamic Tier Router)",
+          "limit": {
+            "context": 160000,
+            "output": 65536
+          },
+          "modalities": {
+            "input": ["text", "image"],
+            "output": ["text"]
+          },
+          "tool_call": true
+        },
+        "chat": {
+          "name": "Jevonian Chat (deepseek-v4.1-flash)",
+          "limit": {
+            "context": 160000,
+            "output": 65536
+          },
+          "tool_call": true
+        },
+        "execute": {
+          "name": "Jevonian Execute (qwen3.8-flash)",
+          "limit": {
+            "context": 160000,
+            "output": 65536
+          },
+          "tool_call": true
+        },
+        "utility": {
+          "name": "Jevonian Utility (qwen3.7-plus)",
+          "limit": {
+            "context": 160000,
+            "output": 65536
+          },
+          "tool_call": true
+        },
+        "plan": {
+          "name": "Jevonian Plan (glm-5.3)",
+          "limit": {
+            "context": 160000,
+            "output": 65536
+          },
+          "tool_call": true
+        }
+      }
+    }
+  },
+  "mcp": {
+    "ref": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "ref-tools-mcp"
+      ],
+      "environment": {
+        "REF_API_KEY": "YOUR_REF_API_KEY_HERE"
+      },
+      "enabled": true,
+      "timeout": 30000
+    }
+  }
+}

@@ -429,4 +429,80 @@ Inspect the live routing decisions, token usage, and latency in your browser:
 > [!NOTE]
 > For the complete technical post-mortem, anatomy of the error, and reproduction evidence, see [OPENCODE_ISSUE_POSTMORTEM.md](file:///D:/learn/gemini-mcp/gemini-blogdee-subdomain/jevonian-multi-agent-deployment/OPENCODE_ISSUE_POSTMORTEM.md).
 
+---
+
+## 7. OpenCode Auto-Compaction & Multimodal Optimization (`prune: true`)
+
+### Error: `Download multimodal file timed out`
+- **Cause**: During UI automation (e.g., Android `android_Snapshot`), OpenCode captures screenshots and stores them as inline base64 Data URIs (`data:image/png;base64,...`) in the chat history. By default, OpenCode has **`compaction.prune: false`**, which causes **all previous screenshots to be re-transmitted on every single turn**. After multiple snapshot operations, the payload balloons to 200,000+ tokens and tens of megabytes, causing upstream multimodal gateways (such as Alibaba Cloud Model Studio) to hit a 60+ second timeout.
+- **Solution**: Configure OpenCode's official V2 compaction settings in `opencode.json`:
+  ```json
+  {
+    "$schema": "https://opencode.ai/config.json",
+    "compaction": {
+      "auto": true,
+      "prune": true,
+      "reserved": 10000
+    }
+  }
+  ```
+  - **`prune: true`**: Automatically removes historical tool outputs (such as old screenshots) once they are superseded, preventing base64 bloat.
+  - **`auto: true`**: Performs automatic compaction before dispatching requests when context grows.
+  - **`reserved: 10000`**: Preserves a 10k token safety buffer to avoid context overflow.
+
+### In-Session Quick Recovery
+If an ongoing OpenCode session hits a context bloat or timeout error, type:
+```text
+/compact
+```
+This forces an immediate summarization and wipes stale base64 images from active memory without losing conversation context.
+
+---
+
+## 8. Multi-Client Matrix: Kilo CLI & Ref MCP Integration
+
+### 8.1 Kilo CLI vs OpenCode
+Both Kilo CLI and OpenCode can be routed through Jevonian on port 8787:
+
+| Client | Configuration File | Image Handling | Compaction Model |
+|---|---|---|---|
+| **OpenCode** | `opencode.json` | Inlines base64 into history | Enabled via `"compaction": { "prune": true }` |
+| **Kilo CLI** | `kilo.json` | Stores tool results cleanly | Native lightweight history model |
+
+To run Kilo CLI through Jevonian:
+```powershell
+# Interactive TUI mode
+kilo
+
+# One-shot command
+kilo run "analyze repository structure"
+
+# Explicit tier pinning
+kilo -m jevonian/plan
+```
+
+### 8.2 Ref MCP Integration (Technical Documentation Search)
+The Ref MCP server (`ref-tools-mcp`) provides fast, token-efficient technical documentation searches for APIs, frameworks, and tools.
+
+1. **System Environment Registration:**
+   ```powershell
+   setx REF_API_KEY "YOUR_REF_API_KEY"
+   ```
+2. **Client Manifest Configuration (`opencode.json` / `kilo.json`):**
+   ```json
+   "mcp": {
+     "ref": {
+       "type": "local",
+       "command": ["npx", "-y", "ref-tools-mcp"],
+       "environment": {
+         "REF_API_KEY": "YOUR_REF_API_KEY"
+       },
+       "enabled": true,
+       "timeout": 30000
+     }
+   }
+   ```
+   Both OpenCode and Kilo CLI can now call `ref_search_documentation` and `ref_read_url` dynamically to query live upstream documentation without polluting context windows.
+
+
 

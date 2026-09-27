@@ -305,3 +305,92 @@ git apply ..\jevonian-multi-agent-deployment\patch-jevonian.diff
 pnpm build
 ```
 This restores the normalizer and effort-routing enhancements immediately.
+
+---
+
+## 7. Incident 2: Multimodal Image Accumulation & Timeout ("Download multimodal file timed out")
+
+**Incident Date:** 2026-09-27  
+**Target Environment:** OpenCode CLI (v2.x) + Jevonian Gateway (Port 8787)  
+**Upstream Provider:** Alibaba Cloud Model Studio (`qwen3.8-flash`)  
+**Related Screenshot:** `screenshot_2026-09-27-14-29-59-139.png`  
+**Failed Turn ID:** `e7a562bb-f147-4ef9-b46b-118d4c57feaf` (from `~/.local/share/jevonian/ledger.jsonl`)
+
+### 7.1 Symptom & Error
+During an automated Android UI testing session using `android_Wait`, `android_ClickBySelector`, `android_Snapshot`, `android_Click`, and `android_Press`, OpenCode suddenly crashed with a red terminal banner:
+
+```text
+Bad Request: data: {
+  "error": {
+    "code": "invalid_parameter_error",
+    "param": null,
+    "message": "Download multimodal file timed out",
+    "type": "invalid_request_error"
+  },
+  "id": "chatcmpl-f0722446-7b2b-4536-9285-5cbeaee1819b"
+}
+```
+
+The ledger record revealed:
+- **Status:** `400 Bad Request`
+- **Model:** `qwen3.8-flash`
+- **Latency:** `64,706 ms` (64.7 seconds)
+- **Token Count:** `226,586 tokens (23% used)`
+
+### 7.2 Root Cause Analysis
+
+#### 1. Unpruned Historical Screenshots in OpenCode
+When OpenCode captures UI screenshots via `android_Snapshot`, it injects each image as a base64 Data URI (`data:image/png;base64,...`) into the conversation history. By default, OpenCode has **`compaction.prune: false`**, meaning **all previous tool outputs are retained indefinitely**. On every single turn, OpenCode re-serialized and re-transmitted every historical snapshot.
+
+#### 2. False Sense of Context Headroom
+In `opencode.json`, `jevonian/auto` declared a context limit of `983,616 tokens`. At 226k tokens, OpenCode reported only **23% used**. Because OpenCode believed 77% of the context remained, it never triggered automatic compaction or summarization.
+
+#### 3. Alibaba Cloud Gateway Timeout
+When Jevonian forwarded the 226k-token payload containing dozens of megabytes of raw base64 image strings to Alibaba Cloud Model Studio, Alibaba's multimodal gateway spent 64.7 seconds attempting to decode and parse all cumulative images simultaneously before terminating with `Download multimodal file timed out`.
+
+### 7.3 Why Kilo CLI Did NOT Suffer From This Issue
+In the same environment, **Kilo CLI** performed the same operations without error:
+- Kilo CLI manages tool outputs in history more cleanly and avoids accumulating repeated full-resolution base64 PNGs across successive turns.
+- Kilo payloads sent to Jevonian are lightweight text tokens, allowing Alibaba Cloud to respond in milliseconds.
+
+### 7.4 Research & Discovery via Ref MCP
+Using the **Ref MCP** tool (`ref_search_documentation`), we queried OpenCode's official documentation (`https://opencode.ai/docs/config#compaction`):
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "compaction": {
+    "auto": true,
+    "prune": false,
+    "reserved": 10000
+  }
+}
+```
+
+The documentation explicitly notes:
+- **`auto`**: *"Automatically compact the session when context is full (default: true)."*
+- **`prune`**: *"Remove old tool outputs to save tokens (default: false). Set to true to enable pruning."*
+- **`reserved`**: *"Token buffer for compaction. Leaves enough window to avoid overflow during compaction."*
+
+### 7.5 Resolution & Configuration
+To permanently fix the issue in OpenCode:
+
+1. **Enable Auto-Pruning & Compaction in `opencode.json`:**
+   ```json
+   {
+     "$schema": "https://opencode.ai/config.json",
+     "compaction": {
+       "auto": true,
+       "prune": true,
+       "reserved": 10000
+     }
+   }
+   ```
+   Setting `"prune": true` instructs OpenCode to automatically discard stale tool outputs (such as earlier Android screenshots) as the session progresses.
+
+2. **Immediate Recovery in Active Sessions:**
+   Typing `/compact` inside an active OpenCode session immediately purges historical base64 media and summarizes the preceding conversation without restarting.
+
+3. **System-Wide Ref MCP Integration:**
+   Configured `REF_API_KEY` in Windows environment (`setx`) and added environment blocks to all tool manifests (`opencode.json`, `kilo.json`, `.mcp.json`, etc.) so documentation lookups are accessible to all agents.
+
