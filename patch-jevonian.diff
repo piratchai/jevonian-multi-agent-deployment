@@ -241,7 +241,7 @@ index 5428caa..2674daa 100644
      // tool calls. Restore it from the previous upstream response before egress.
      const passbackReasoning =
 diff --git a/src/wire-correction.test.ts b/src/wire-correction.test.ts
-index 1403772..fd2d656 100644
+index 1403772..db2e686 100644
 --- a/src/wire-correction.test.ts
 +++ b/src/wire-correction.test.ts
 @@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test"
@@ -252,7 +252,7 @@ index 1403772..fd2d656 100644
  
  describe("model entry parse", () => {
    it("accepts bare strings and { id, wire } objects", () => {
-@@ -100,3 +101,191 @@ describe("OpenCode Responses passthrough", () => {
+@@ -100,3 +101,222 @@ describe("OpenCode Responses passthrough", () => {
      expect(await response.text()).toContain("response.output_text.delta");
    });
  });
@@ -442,13 +442,44 @@ index 1403772..fd2d656 100644
 +      },
 +    ]);
 +  });
++
++  it("converts Anthropic URL image blocks into OpenAI image_url format", () => {
++    const input = [
++      {
++        role: "user",
++        content: [
++          {
++            type: "image",
++            source: {
++              type: "url",
++              url: "https://example.com/screenshot.png",
++            },
++          },
++        ],
++      },
++    ];
++
++    expect(normalizeOpenAIMessages(input)).toEqual([
++      {
++        role: "user",
++        content: [
++          {
++            type: "image_url",
++            image_url: {
++              url: "https://example.com/screenshot.png",
++            },
++          },
++        ],
++      },
++    ]);
++  });
 +});
 +
 diff --git a/src/wire.ts b/src/wire.ts
-index c5fd729..b3f913e 100644
+index c5fd729..b69f3b4 100644
 --- a/src/wire.ts
 +++ b/src/wire.ts
-@@ -254,3 +254,200 @@ export function upstreamUrlFor(provider: Provider, wire: UpstreamWire): string {
+@@ -254,3 +254,207 @@ export function upstreamUrlFor(provider: Provider, wire: UpstreamWire): string {
    }
    return `${base}${endpointFor(provider.type, wire)}`;
  }
@@ -542,6 +573,13 @@ index c5fd729..b3f913e 100644
 +                type: "image_url",
 +                image_url: {
 +                  url: `data:${mediaType};base64,${source.data}`,
++                },
++              });
++            } else if (source.type === "url" && typeof source.url === "string") {
++              imageParts.push({
++                type: "image_url",
++                image_url: {
++                  url: source.url,
 +                },
 +              });
 +            } else {
