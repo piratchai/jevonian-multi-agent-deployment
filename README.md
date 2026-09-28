@@ -278,28 +278,32 @@ Copy the template [config-claudecode.json](./config-claudecode.json) to `C:\User
         "label": "Plan",
         "description": "High complexity reasoning & architectural blueprints (Claude Opus 5.5, xhigh effort)",
         "models": ["claude-opus-5-5"],
-        "effort": "xhigh"
+        "effort": "xhigh",
+        "forceEffort": true
       },
       {
         "id": "execute",
         "label": "Execute",
         "description": "Implementation, bug fixing, tool loops (Claude Sonnet 5, medium effort)",
         "models": ["claude-sonnet-5"],
-        "effort": "medium"
+        "effort": "medium",
+        "forceEffort": true
       },
       {
         "id": "utility",
         "label": "Background",
         "description": "Background repo scans, summaries, titles (Claude Sonnet 5, low effort)",
         "models": ["claude-sonnet-5"],
-        "effort": "low"
+        "effort": "low",
+        "forceEffort": true
       },
       {
         "id": "chat",
         "label": "Chit-chat",
         "description": "Greetings, casual conversation, quick queries (Claude Haiku 4.5, low effort)",
         "models": ["claude-haiku-4-5-20251001"],
-        "effort": "low"
+        "effort": "low",
+        "forceEffort": true
       }
     ],
     "tiers": {
@@ -335,6 +339,12 @@ Copy the template [config-claudecode.json](./config-claudecode.json) to `C:\User
 - **`utility` (Low Effort)**: **`claude-sonnet-5`** ($2 / $10 per MTok). Background repo context reading, summaries, and title generation.
 - **`execute` (Medium Effort)**: **`claude-sonnet-5`** ($2 / $10 per MTok). Code editing, bug debugging, test execution, and bash tool calls.
 - **`plan` (XHigh Effort)**: **`claude-opus-5-5`** ($4 / $20 per MTok). Deepest frontier intelligence for multi-region system design and architectural blueprints.
+
+> [!IMPORTANT]
+> **Why `"forceEffort": true` is required:**
+> By default, the Claude Code CLI (`claude`) attaches `"output_config": { "effort": "high" }` on every outgoing API request.
+> Under standard Jevonian routing semantics, explicit client-specified effort overrides the router's tier effort (`"client set wins"`).
+> Setting `"forceEffort": true` on each tier instructs Jevonian to enforce the configured tier effort (`low`, `medium`, `xhigh`) over Claude Code's default `high` flag.
 
 ### 4.4 Claude Code Client Configuration (`~/.claude/settings.json`)
 Configure Claude Code to send all traffic to port 8790:
@@ -573,6 +583,124 @@ A complete native V2 configuration is included in this repository as [`opencode.
 2. **Provider Syntax:** Uses `providers` with `package: "aisdk:@ai-sdk/openai-compatible"` and `settings`.
 3. **Permissions:** Uses ordered array `permissions: [ { "action": "*", "resource": "*", "effect": "allow" } ]`.
 4. **MCP Servers:** Nested under `mcp.servers` with `disabled: false`.
+
+---
+
+## 10. Deployment Post-Mortem & Troubleshooting Guide
+
+During initial deployment in Windows development environments, several non-obvious traps and environmental conflicts were identified and resolved. This section documents each issue, its root cause, and the exact sequence of fixes applied.
+
+### 10.1 The Windows Command Processor Hijack (`AutoRun` & DOSKEY Macros)
+- **Symptom:**
+  Running `claude --dangerously-skip-permissions` immediately opened Microsoft Edge browser, printed unwanted banners or `jevonian update` notifications, or attempted to route to port 8797 instead of 8790.
+- **Root Cause:**
+  A Windows registry entry located at:
+  `HKCU\Software\Microsoft\Command Processor\AutoRun`
+  was configured to run a legacy macro script (`jev.doskey`) on every single `cmd.exe` initialization. This macro hijacked the `claude` command to execute an obsolete legacy launcher script.
+- **Why It Resisted File Edits:**
+  Windows `doskey` macros reside in the **active memory** of currently open terminal windows. Even after deleting files on disk, any CMD window opened prior to the fix continued to run the cached macro.
+- **Resolution:**
+  1. Delete the registry auto-run hook permanently:
+     ```powershell
+     reg delete "HKCU\Software\Microsoft\Command Processor" /v AutoRun /f
+     ```
+  2. Flush the macro from any currently open CMD window:
+     ```cmd
+     doskey claude=
+     doskey jev=
+     ```
+  3. Ensure Claude Code routes cleanly via native configuration (`~/.claude/settings.json`) without any wrapper scripts or DOSKEY macros.
+
+---
+
+### 10.2 Claude Code Hardcoded Effort & The `forceEffort: true` Rule
+- **Symptom:**
+  Every model in Jevonian dashboard showed `effort: high` (or `xhigh`), ignoring the configured tier efforts (`low` for chat/utility, `medium` for execute).
+- **Root Cause:**
+  1. Claude Code CLI (v2.1.282+) automatically injects `"output_config": { "effort": "high" }` on every outgoing API request.
+  2. Upstream Jevonian architecture follows the design principle: **"explicit client-specified effort wins over router tier defaults"**.
+  3. Consequently, Claude Code's hardcoded `effort: high` overrode all tier settings in `config.json`.
+  4. Additionally, project-local `.claude/settings.json` contained `"effortLevel": "high"`, forcing high-effort reasoning chains.
+- **Resolution:**
+  1. Add `"forceEffort": true` to every tier in `config-claudecode.json` and `~/.config/jevonian-claude/config.json`:
+     ```json
+     {
+       "id": "execute",
+       "label": "Execute",
+       "models": ["claude-sonnet-5"],
+       "effort": "medium",
+       "forceEffort": true
+     }
+     ```
+  2. Remove `"effortLevel": "high"` from project-local `.claude/settings.json` so Claude Code does not force high effort locally.
+  3. Result: Jevonian now enforces `chat: low`, `utility: low`, `execute: medium`, and `plan: xhigh` strictly according to the configured routing policy.
+
+---
+
+### 10.3 Background Gateway Daemon Requirement
+- **Symptom:**
+  Running `claude` returned `Connection refused` (ECONNREFUSED) to `http://127.0.0.1:8790`.
+- **Root Cause:**
+  Claude Code is purely an API client; it does not launch the Jevonian gateway on demand. The gateway must be running in the background before Claude Code CLI is invoked.
+- **Resolution:**
+  1. Launch the gateway via `run-claude.bat` or `node run-claude.js` before launching Claude Code.
+  2. For automated background operation, run `run-claude.js` via a background task manager, Windows Task Scheduler, or PM2 (`pm2 start run-claude.js --name jevonian-claude`).
+
+---
+
+### 10.4 TypeSafe API Credential Auto-Discovery
+- **Symptom:**
+  TypeSafe brain intelligence failed to activate, falling back to heuristic routing.
+- **Root Cause:**
+  Original deployment scripts looked for `typesafe-api.txt` only in the current working directory.
+- **Resolution:**
+  Updated `run-claude.js` to automatically inspect:
+  - `D:/work/sourcecode/workflow_reimbursement/config/typesafe-credential.txt`
+  - `credential/typesafe-api.txt`
+  - `TYPESAFE_API_KEY` environment variable
+  This ensures seamless credential resolution across different project layouts.
+
+---
+
+## 11. Context Window & Token Compaction Architecture
+
+### 11.1 Why Tokens Fill Up So Quickly (Compaction Analysis)
+A common issue observed in real-world usage is rapid context saturation:
+```text
+* Compacting conversation... (1m 5s · ↓ 3.8k tokens)  0% until auto-compact
+```
+
+This occurs due to the convergence of four key factors:
+
+1. **Unknown Model Context Clamp (200k Token Ceiling):**
+   - Claude Code CLI maintains an internal catalog of known model identifiers.
+   - When configured with a custom router model like `jevonian/auto`, Claude Code prints a warning:
+     `"jevonian/auto isn't described by this version's model catalog... auto-compact keeps this session within 200k tokens."`
+   - Even if the underlying model supports 1,000,000+ tokens, Claude Code clamps the active session to **200,000 tokens** (triggering compaction around 160k-180k tokens).
+
+2. **Bulk File & MCP Memory Ingestion:**
+   - Prompting Claude Code to read entire session folders (e.g. `sessions/` containing over 10 MB of text) or dumping an entire MCP memory graph (`read_graph`) ingests millions of tokens into the conversation history in a single tool step.
+   - For example, 10.2 MB of text equals approximately **2.6 million tokens**—over **13 times** the 200k token ceiling of Claude Code!
+   - This instantly triggers conversation auto-compaction.
+
+3. **High Effort Reasoning Tokens:**
+   - When running with `high effort`, Claude generates between 8,000 and 32,000 thinking/reasoning tokens per turn. These tokens count directly against the active context limit.
+
+4. **Compaction Reduction Limitation:**
+   - In the compaction screenshot, a 1-minute compaction cycle only reclaimed `↓ 3.8k tokens` (`0% until auto-compact remaining`).
+   - This occurs because Claude Code cannot compact tool outputs that were generated in the immediate active turn. If a single prompt injects 150k+ tokens of file dumps, compaction has almost nothing historical to trim!
+
+---
+
+### 11.2 Best Practices for Managing Context in Large Repositories
+
+| Practice | Bad Approach ❌ | Recommended Approach ✅ |
+|---|---|---|
+| **Directory Inspection** | `"read session files from this folder"` (Dumps 10MB into context) | Ask targeted questions or use search: `"Find sessions mentioning invoice approval"` |
+| **MCP Knowledge Graphs** | Calling `read_graph` to dump everything | Use targeted queries: `search_nodes`, `open_nodes` |
+| **Reasoning Effort** | Leaving effort on `high` for all tasks | Use `"forceEffort": true` in Jevonian to enforce `medium` or `low` where appropriate |
+| **Context Window Override** | Accepting the default 200k clamp | Add `CLAUDE_CODE_MAX_CONTEXT_TOKENS: "1000000"` to `~/.claude/settings.json` or append `[1m]` to model |
+
 
 
 

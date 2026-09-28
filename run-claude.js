@@ -10,6 +10,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 let typesafeApiKey = process.env.TYPESAFE_API_KEY;
 if (!typesafeApiKey) {
   const candidateKeyFiles = [
+    "D:/work/sourcecode/workflow_reimbursement/config/typesafe-credential.txt",
     join(__dirname, "typesafe-api.txt"),
     join(__dirname, "credential", "typesafe-api.txt"),
     join(__dirname, "..", "credential", "typesafe-api.txt"),
@@ -27,10 +28,8 @@ if (!typesafeApiKey) {
 
 // Locate Jevonian installation directory
 const candidateJevonianDirs = [
-  process.env.JEVONIAN_DIR,
-  join(__dirname, "..", "jevonian"),
   join(__dirname, "jevonian"),
-  "D:/learn/jevonian",
+  process.env.JEVONIAN_DIR,
 ].filter(Boolean);
 
 let jevonianDir = candidateJevonianDirs.find((dir) => existsSync(join(dir, "dist", "cli.mjs")));

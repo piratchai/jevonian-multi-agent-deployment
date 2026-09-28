@@ -36,28 +36,32 @@
         "label": "Plan",
         "description": "High complexity reasoning & architectural blueprints (Claude Opus 5.5, xhigh effort)",
         "models": ["claude-opus-5-5"],
-        "effort": "xhigh"
+        "effort": "xhigh",
+        "forceEffort": true
       },
       {
         "id": "execute",
         "label": "Execute",
         "description": "Implementation, bug fixing, tool loops (Claude Sonnet 5.5 / Sonnet 5, medium effort)",
         "models": ["claude-sonnet-5"],
-        "effort": "medium"
+        "effort": "medium",
+        "forceEffort": true
       },
       {
         "id": "utility",
         "label": "Background",
         "description": "Background repo scans, summaries, titles (Claude Sonnet 5.5 / Sonnet 5, low effort)",
         "models": ["claude-sonnet-5"],
-        "effort": "low"
+        "effort": "low",
+        "forceEffort": true
       },
       {
         "id": "chat",
         "label": "Chit-chat",
         "description": "Greetings, casual conversation, quick queries (Claude Haiku 4.5, low effort)",
         "models": ["claude-haiku-4-5-20251001"],
-        "effort": "low"
+        "effort": "low",
+        "forceEffort": true
       }
     ],
     "tiers": {

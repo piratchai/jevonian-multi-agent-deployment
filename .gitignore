@@ -3,9 +3,14 @@ credentials.json
 .env
 *.key
 *.pem
+typesafe-api.txt
+credential/
 
-# Dependencies
+# Dependencies & Sub-builds
 node_modules/
+jevonian/
+claude.js
+jev.doskey
 
 # Logs & temp
 *.log
