@@ -4,6 +4,80 @@ This guide documents the complete end-to-end architecture, installation, code pa
 
 ---
 
+> [!IMPORTANT]
+> ## 🚀 Quick-Start Checklist & Chronological Runbook
+> Follow these steps in order before launching any CLI clients:
+> 
+> 1. **Sanitize Windows Environment (Critical First Step)**:
+>    Check if Windows CMD has legacy `AutoRun` hooks or hijacked `doskey` macros that intercept `claude`:
+>    ```powershell
+>    # Check if AutoRun hook exists
+>    reg query "HKCU\Software\Microsoft\Command Processor" /v AutoRun
+>    # If found, delete it permanently:
+>    reg delete "HKCU\Software\Microsoft\Command Processor" /v AutoRun /f
+>    # Flush active macro in currently open CMD windows:
+>    doskey claude=
+>    ```
+> 2. **Build & Patch Upstream Jevonian**:
+>    Clone `https://github.com/xinyao27/jevonian.git`, apply `patch-jevonian.diff`, and compile:
+>    ```powershell
+>    git clone https://github.com/xinyao27/jevonian.git ../jevonian
+>    cd ../jevonian
+>    git apply ../jevonian-multi-agent-deployment/patch-jevonian.diff
+>    pnpm install
+>    pnpm build
+>    ```
+> 3. **Configure Jevonian Instance (`~/.config/jevonian-claude/config.json`)**:
+>    Copy `config-claudecode.json` to `~/.config/jevonian-claude/config.json`.
+>    Ensure `"forceEffort": true` is set on every tier so Claude Code cannot override effort to `high`.
+> 4. **Start the Background Gateway**:
+>    ```powershell
+>    # In jevonian-multi-agent-deployment directory:
+>    node run-claude.js
+>    # Or double-click: run-claude.bat
+>    ```
+>    Verify that it displays: `jevonian listening on http://127.0.0.1:8790/`.
+> 5. **Scope Claude Code Locally (Do NOT Put in Global Settings)**:
+>    In your project's `.claude/settings.json` (e.g. `workflow_reimbursement/.claude/settings.json`), set:
+>    ```json
+>    {
+>      "model": "jevonian/auto",
+>      "env": {
+>        "ANTHROPIC_BASE_URL": "http://127.0.0.1:8790",
+>        "ANTHROPIC_AUTH_TOKEN": "jevonian-local",
+>        "ANTHROPIC_API_KEY": "",
+>        "ANTHROPIC_DEFAULT_OPUS_MODEL": "jevonian/auto",
+>        "ANTHROPIC_DEFAULT_SONNET_MODEL": "jevonian/auto",
+>        "ANTHROPIC_DEFAULT_HAIKU_MODEL": "jevonian/utility",
+>        "CLAUDE_CODE_SUBAGENT_MODEL": "jevonian/auto"
+>      }
+>    }
+>    ```
+>    *Never put these environment variables into `~/.claude/settings.json` (global), or `jevonian/auto` will hijack every other folder on your machine!*
+> 6. **Launch Claude Code**:
+>    ```powershell
+>    claude --dangerously-skip-permissions
+>    ```
+
+---
+
+## 🧭 "If You Encounter This, Do This" — Rapid Diagnostic Decision Tree
+
+If you encounter unexpected behavior during setup or runtime, consult this matrix immediately:
+
+| # | Symptom / Error | Root Cause | Exact Fix ("Do This") |
+|---|---|---|---|
+| **1** | **Microsoft Edge opens automatically** or CMD displays `jevonian update` banner on running `claude` | Windows registry `AutoRun` is executing an obsolete DOSKEY macro from `D:\learn\JevAI` on every CMD startup. | 1. Run: `reg delete "HKCU\Software\Microsoft\Command Processor" /v AutoRun /f`<br/>2. In existing CMD windows run: `doskey claude=`<br/>3. Open a fresh terminal. |
+| **2** | **Every model in Jevonian dashboard shows `effort: high`** (or `xhigh`), ignoring `low` / `medium` tier settings | 1. Claude Code CLI v2.1.282+ injects `"output_config": { "effort": "high" }` on every turn.<br/>2. Upstream Jevonian default rule is "client-specified effort wins over tier effort".<br/>3. Local `.claude/settings.json` might have `"effortLevel": "high"`. | 1. Add `"forceEffort": true` to every tier in `config.json`.<br/>2. Remove `"effortLevel": "high"` from your project `.claude/settings.json`.<br/>3. Restart the gateway. |
+| **3** | **Rapid token filling & compaction:** `Compacting conversation... (1m 5s · ↓ 3.8k tokens) 0% until auto-compact` | 1. Claude Code enforces a **strict 200,000-token context ceiling** for unrecognized models like `jevonian/auto`.<br/>2. Bulk-reading large directories (e.g. `sessions/` = 10 MB = 2.6M tokens) or dumping entire MCP memory graphs (`read_graph`) overflows the window in one turn.<br/>3. Compaction cannot delete immediate turn tool outputs, leaving 0% headroom. | 1. **Never bulk-dump large folders** into Claude prompts.<br/>2. Use targeted file queries or grep/search tools.<br/>3. Use `search_nodes` instead of `read_graph`.<br/>4. Optionally add `"CLAUDE_CODE_MAX_CONTEXT_TOKENS": "1000000"` to settings. |
+| **4** | **`jevonian/auto` appears in other folders** where you wanted standard Anthropic Claude | `ANTHROPIC_BASE_URL` or `"model": "jevonian/auto"` was placed into global `~/.claude/settings.json`. | 1. Remove `model` and `env` from `C:\Users\<user>\.claude\settings.json`.<br/>2. Place `model` and `env` **only** inside `<project>/.claude/settings.json`. |
+| **5** | **`Connection refused` (ECONNREFUSED) to `http://127.0.0.1:8790`** | The Jevonian background gateway is not running. Claude Code is a client and does not auto-spawn the server. | Double-click `run-claude.bat` or run `node run-claude.js` before launching `claude`. |
+| **6** | **Running multiple projects simultaneously causes port conflicts** | Two gateways cannot bind to the same port (e.g. 8790). | Assign a unique port per workspace (e.g. `8790` for Reimbursement, `8792` for HBT). Each workspace gets its own config (`~/.config/jevonian-<name>/config.json`) and data directory. |
+| **7** | **TypeSafe brain fails to activate** (falls back to heuristic routing) | `TYPESAFE_API_KEY` was not found in environment or credential paths. | Place key in `D:/work/sourcecode/workflow_reimbursement/config/typesafe-credential.txt` or set `TYPESAFE_API_KEY` environment variable. |
+| **8** | **OpenCode fails with:** `if content is list. item must be dict and key[type] should in dict` | OpenCode leaves `tool_use`/`tool_result` inside `content` arrays for OpenAI-compatible providers. | Built-in normalizer (`patch-jevonian.diff`) normalizes wire format in `src/upstream.ts`. Apply `patch-jevonian.diff` and run `pnpm build`. |
+
+---
+
 ## 1. System Architecture Overview
 
 ```mermaid

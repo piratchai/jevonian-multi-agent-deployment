@@ -26,9 +26,12 @@ if (!typesafeApiKey) {
   }
 }
 
-// Locate Jevonian installation directory
+// ============================================================================
+// Locate Jevonian installation directory (checks local build, sibling clone, or env)
+// ============================================================================
 const candidateJevonianDirs = [
   join(__dirname, "jevonian"),
+  join(__dirname, "..", "jevonian"),
   process.env.JEVONIAN_DIR,
 ].filter(Boolean);
 
@@ -48,6 +51,11 @@ if (!jevonianDir) {
   process.exit(1);
 }
 
+// Jevonian daemon environment variables:
+// - JEVONIAN_CONFIG: Isolated configuration path for Claude Code instance (Port 8790)
+// - JEVONIAN_DATA_DIR: Session store & SQLite ledger
+// - JEVONIAN_CREDENTIALS: OAuth credentials for Claude subscription
+// - JEVONIAN_NO_OPEN: Prevents auto-launching external browser tabs on startup
 const env = {
   ...process.env,
   ...(typesafeApiKey ? { TYPESAFE_API_KEY: typesafeApiKey } : {}),
