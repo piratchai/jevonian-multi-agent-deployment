@@ -1,4 +1,19 @@
-﻿diff --git a/src/compaction.test.ts b/src/compaction.test.ts
+diff --git a/src/anthropic-thinking.ts b/src/anthropic-thinking.ts
+index 92e1629..aea78e2 100644
+--- a/src/anthropic-thinking.ts
++++ b/src/anthropic-thinking.ts
+@@ -56,8 +56,8 @@ export function anthropicThinkingSupport(model: unknown): AnthropicThinkingSuppo
+   return {
+     adaptive: true,
+     rejectsEnabled: version >= 4.7,
+-    // Opus 5.5 is always on; later generations are assumed to follow it rather than risk a 400.
+-    rejectsDisabled: (family === "opus" && version >= 5.5) || version >= 6,
++    // Opus 5.5 and Sonnet 5.5 are always on; later generations follow
++    rejectsDisabled: ((family === "opus" || family === "sonnet") && version >= 5.5) || version >= 6,
+     xhigh: version >= 4.7,
+   };
+ }
+diff --git a/src/compaction.test.ts b/src/compaction.test.ts
 index 47143e9..c80138f 100644
 --- a/src/compaction.test.ts
 +++ b/src/compaction.test.ts
@@ -68,7 +83,7 @@ index 69306c1..f489aaf 100644
  }
  
 diff --git a/src/config.ts b/src/config.ts
-index e065d97..b9401bf 100644
+index 3b749fb..6aa1bd2 100644
 --- a/src/config.ts
 +++ b/src/config.ts
 @@ -1,7 +1,7 @@
@@ -80,7 +95,7 @@ index e065d97..b9401bf 100644
  import { getCredential } from "./credentials";
  import type { OAuthSource } from "./oauth";
  import { hasOAuthCredential } from "./oauth";
-@@ -182,6 +182,7 @@ export interface RoutingEntry {
+@@ -183,6 +183,7 @@ export interface RoutingEntry {
     * the last provider look like it did nothing.
     */
    providers?: Record<string, string[]>;
@@ -88,7 +103,7 @@ index e065d97..b9401bf 100644
  }
  
  /** @deprecated Prefer `RoutingEntry[]`. Kept for migration and a few call sites that still want the four builtins as a record. */
-@@ -703,12 +704,17 @@ function parseRoutingEntry(raw: unknown, index: number): RoutingEntry {
+@@ -709,12 +710,17 @@ function parseRoutingEntry(raw: unknown, index: number): RoutingEntry {
      models,
      parseProviderOrder(value.providers ?? value.providerOrder),
    );
@@ -107,7 +122,7 @@ index e065d97..b9401bf 100644
  }
  
 diff --git a/src/routing.ts b/src/routing.ts
-index 77f0f1c..c6036ad 100644
+index e108e3e..6011b01 100644
 --- a/src/routing.ts
 +++ b/src/routing.ts
 @@ -9,7 +9,7 @@ import {
@@ -119,7 +134,7 @@ index 77f0f1c..c6036ad 100644
  import {
    BUILTIN_ROUTING_IDS,
    isBuiltinRoutingId,
-@@ -632,17 +632,18 @@ function asRecord(value: unknown): Record<string, unknown> {
+@@ -667,17 +667,18 @@ function asRecord(value: unknown): Record<string, unknown> {
  }
  
  function stringifyContent(value: unknown): string {
@@ -142,7 +157,7 @@ index 77f0f1c..c6036ad 100644
  }
  
  export function classifyPhase(body: Record<string, unknown>, kind: RequestKind): PhaseSignals {
-@@ -1761,7 +1762,8 @@ export async function decideRoute(
+@@ -1797,7 +1798,8 @@ export async function decideRoute(
    if (chosenCandidate?.cache.state === "hot") reason = `${reason}:cache-hot`;
    if (chosenCandidate?.cache.state === "stale") reason = `${reason}:cache-stale`;
  
@@ -152,7 +167,7 @@ index 77f0f1c..c6036ad 100644
    const appliedEffort = clampEffort(
      wanted ?? requestedEffort ?? defaultEffort,
      effectiveCapabilities(chosen.model, config.routing.capacities?.[chosen.model]).efforts,
-@@ -1769,9 +1771,11 @@ export async function decideRoute(
+@@ -1805,9 +1807,11 @@ export async function decideRoute(
    const effortNote =
      wanted && appliedEffort && wanted !== appliedEffort
        ? `clamped "${wanted}" to "${appliedEffort}"`
@@ -168,11 +183,11 @@ index 77f0f1c..c6036ad 100644
  
    store.set(session, {
 diff --git a/src/upstream.ts b/src/upstream.ts
-index 5428caa..2674daa 100644
+index 10faf1b..55717dc 100644
 --- a/src/upstream.ts
 +++ b/src/upstream.ts
-@@ -106,7 +106,7 @@ import {
- } from "./routing";
+@@ -111,7 +111,7 @@ import {
+ import { saveTokens, warnSaverUnavailable } from "./saver";
  import type { AppEnv } from "./server";
  import { streamWithKeepalive } from "./stream-keepalive";
 -import { planUpstreamWire, upstreamUrlFor } from "./wire";
@@ -180,7 +195,7 @@ index 5428caa..2674daa 100644
  
  interface RequestMeta {
    id: string;
-@@ -783,6 +783,28 @@ export function clientEffortOf(
+@@ -791,6 +791,28 @@ export function clientEffortOf(
  function applyClaudeCodeSystem(body: Record<string, unknown>): Record<string, unknown> {
    const next = { ...body };
    injectClaudeCodeSystem(next);
@@ -209,7 +224,7 @@ index 5428caa..2674daa 100644
    return next;
  }
  
-@@ -1434,7 +1456,12 @@ async function forward(
+@@ -1518,7 +1540,12 @@ async function forward(
              ? responsesToChatRequest(body, decision.model)
              : clientKind === "anthropic"
                ? anthropicToChatRequest(body, decision.model)
@@ -223,23 +238,19 @@ index 5428caa..2674daa 100644
          return {
            project: auth.project ?? "default-cli-project",
            model: decision.model,
-@@ -1514,6 +1541,16 @@ async function forward(
+@@ -1598,6 +1625,12 @@ async function forward(
      // bridge) sees the rewritten text. The Devin wire applies its built-ins again while
      // encoding; both passes are idempotent.
      upstreamBody = rewritePromptBodies(upstreamBody, config.promptPolicy);
 +
-+    // OpenAI Chat Completions sanitizer: normalize Anthropic-style blocks (tool_use / tool_result)
-+    // inside `content` array into standard OpenAI tool_calls and tool messages.
-+    // Also sanitizes invalid array items that cause strict backends (e.g. Alibaba Cloud Model Studio)
-+    // to fail with "if content is list. item must be dict and key[type] should in dict".
 +    if (upstreamKind === "openai" && Array.isArray(upstreamBody.messages)) {
 +      upstreamBody.messages = normalizeOpenAIMessages(
 +        upstreamBody.messages as Record<string, unknown>[],
 +      );
 +    }
-     // DeepSeek / Kimi thinking mode: clients often drop `reasoning_content` after
-     // tool calls. Restore it from the previous upstream response before egress.
-     const passbackReasoning =
+     // The token saver compresses prior tool results on the fully assembled upstream body, so
+     // whichever wire the turn took — chat, Anthropic, Responses, or the Devin fold — gets the
+     // same `rtk` filtering. The estimate lands on the ledger row written by `record`.
 diff --git a/src/wire-correction.test.ts b/src/wire-correction.test.ts
 index 1403772..04aa920 100644
 --- a/src/wire-correction.test.ts

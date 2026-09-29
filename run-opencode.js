@@ -8,6 +8,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Locate Jevonian installation directory
 const candidateJevonianDirs = [
+  join(__dirname, "jevonian_fresh"),
   process.env.JEVONIAN_DIR,
   join(__dirname, "..", "jevonian"),
   join(__dirname, "jevonian"),

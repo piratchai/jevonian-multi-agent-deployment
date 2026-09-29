@@ -30,6 +30,7 @@ if (!typesafeApiKey) {
 // Locate Jevonian installation directory (checks local build, sibling clone, or env)
 // ============================================================================
 const candidateJevonianDirs = [
+  join(__dirname, "jevonian_fresh"),
   join(__dirname, "jevonian"),
   join(__dirname, "..", "jevonian"),
   process.env.JEVONIAN_DIR,

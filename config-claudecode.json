@@ -13,9 +13,12 @@
       "oauthSource": "claude-code",
       "billing": "subscription",
       "models": [
-        { "id": "claude-haiku-4-5-20251001" },
-        { "id": "claude-sonnet-5" },
-        { "id": "claude-opus-5-5" }
+        {
+          "id": "claude-sonnet-5-5"
+        },
+        {
+          "id": "claude-sonnet-5"
+        }
       ],
       "injectStreamUsage": true,
       "headers": {
@@ -26,7 +29,30 @@
     }
   ],
   "modelAliases": {
-    "claude-sonnet-5-5": ["claude-subscription/claude-sonnet-5"]
+    "claude-sonnet-5-5": [
+      "claude-subscription/claude-sonnet-5-5",
+      "claude-subscription/claude-sonnet-5"
+    ],
+    "claude-sonnet-5": [
+      "claude-subscription/claude-sonnet-5-5",
+      "claude-subscription/claude-sonnet-5"
+    ],
+    "claude-3-5-sonnet-20241022": [
+      "claude-subscription/claude-sonnet-5-5",
+      "claude-subscription/claude-sonnet-5"
+    ],
+    "claude-3-7-sonnet-20250219": [
+      "claude-subscription/claude-sonnet-5-5",
+      "claude-subscription/claude-sonnet-5"
+    ],
+    "claude-opus-5-5": [
+      "claude-subscription/claude-sonnet-5-5",
+      "claude-subscription/claude-sonnet-5"
+    ],
+    "claude-haiku-4-5": [
+      "claude-subscription/claude-sonnet-5-5",
+      "claude-subscription/claude-sonnet-5"
+    ]
   },
   "routing": {
     "mode": "auto",
@@ -34,64 +60,95 @@
       {
         "id": "plan",
         "label": "Plan",
-        "description": "High complexity reasoning & architectural blueprints (Claude Opus 5.5, xhigh effort)",
-        "models": ["claude-opus-5-5"],
-        "effort": "xhigh",
+        "description": "High complexity reasoning & architectural blueprints (Claude Opus 5.5 / Fable 5.1, xhigh effort)",
+        "models": [
+          "claude-sonnet-5-5",
+          "claude-sonnet-5"
+        ],
+        "effort": "none",
         "forceEffort": true
       },
       {
         "id": "execute",
         "label": "Execute",
-        "description": "Implementation, bug fixing, tool loops (Claude Sonnet 5.5 / Sonnet 5, medium effort)",
-        "models": ["claude-sonnet-5"],
-        "effort": "medium",
+        "description": "Implementation, bug fixing, tool loops (Claude Sonnet 5.5, medium effort)",
+        "models": [
+          "claude-sonnet-5-5",
+          "claude-sonnet-5"
+        ],
+        "effort": "none",
         "forceEffort": true
       },
       {
         "id": "utility",
         "label": "Background",
-        "description": "Background repo scans, summaries, titles (Claude Sonnet 5.5 / Sonnet 5, low effort)",
-        "models": ["claude-sonnet-5"],
-        "effort": "low",
+        "description": "Background repo scans, summaries, titles (Claude Sonnet 5.5 / Haiku 4.5, low effort)",
+        "models": [
+          "claude-sonnet-5-5",
+          "claude-sonnet-5"
+        ],
+        "effort": "none",
         "forceEffort": true
       },
       {
         "id": "chat",
         "label": "Chit-chat",
         "description": "Greetings, casual conversation, quick queries (Claude Haiku 4.5, low effort)",
-        "models": ["claude-haiku-4-5-20251001"],
-        "effort": "low",
+        "models": [
+          "claude-sonnet-5-5",
+          "claude-sonnet-5"
+        ],
+        "effort": "none",
         "forceEffort": true
       }
     ],
     "tiers": {
-      "plan": ["claude-opus-5-5"],
-      "execute": ["claude-sonnet-5"],
-      "utility": ["claude-sonnet-5"],
-      "chat": ["claude-haiku-4-5-20251001"]
+      "plan": [
+        "claude-sonnet-5-5",
+        "claude-sonnet-5"
+      ],
+      "execute": [
+        "claude-sonnet-5-5",
+        "claude-sonnet-5"
+      ],
+      "utility": [
+        "claude-sonnet-5-5",
+        "claude-sonnet-5"
+      ],
+      "chat": [
+        "claude-sonnet-5-5",
+        "claude-sonnet-5"
+      ]
     },
     "capacities": {
-      "claude-haiku-4-5-20251001": {
-        "efforts": ["low"]
+      "claude-sonnet-5-5": {
+        "efforts": [
+          "none",
+          "low",
+          "medium",
+          "high"
+        ]
       },
       "claude-sonnet-5": {
-        "efforts": ["low", "medium", "high"]
-      },
-      "claude-opus-5-5": {
-        "efforts": ["high", "xhigh"]
+        "efforts": [
+          "none",
+          "low",
+          "medium",
+          "high"
+        ]
       }
     },
     "sessionTtlMinutes": 720,
     "quotaGuard": {
-      "enabled": true,
+      "enabled": false,
       "lowPercent": 10
     },
     "brains": [
       {
         "channel": "typesafe",
-        "apiKey": "YOUR_TYPESAFE_API_KEY",
+        "apiKey": "apikey_224d3b80a7177d84bfeaa532a26d4a15a6c_6ea56ee098c4dae90f0b572a20820b569acc5217be05094d99db0cff2944e222",
         "apiKeyEnv": "TYPESAFE_API_KEY",
-        "timeoutMs": 8000,
+        "timeoutMs": 200,
         "minConfidence": 0.6
       }
     ],
